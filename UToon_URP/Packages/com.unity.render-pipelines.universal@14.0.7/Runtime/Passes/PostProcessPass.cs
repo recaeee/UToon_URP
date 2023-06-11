@@ -317,6 +317,9 @@ namespace UnityEngine.Rendering.Universal
             m_Tonemapping = stack.GetComponent<Tonemapping>();
             m_FilmGrain = stack.GetComponent<FilmGrain>();
             m_UseFastSRGBLinearConversion = renderingData.postProcessingData.useFastSRGBLinearConversion;
+            
+            //```UToonExternal```
+            UToonPostProcessStack.Setup(context, ref renderingData);
 
             var cmd = renderingData.commandBuffer;
             if (m_IsFinalPass)
