@@ -319,7 +319,7 @@ namespace UnityEngine.Rendering.Universal
             m_UseFastSRGBLinearConversion = renderingData.postProcessingData.useFastSRGBLinearConversion;
             
             //```UToonExternal```
-            UToonPostProcessStack.Setup(context, ref renderingData);
+            UToonPostProcessStack.Setup(m_Materials.uber, context, ref renderingData);
 
             var cmd = renderingData.commandBuffer;
             if (m_IsFinalPass)

@@ -10,12 +10,64 @@ namespace UnityEngine.Rendering.Universal
             profilingSampler = new ProfilingSampler("UToon-VolumeLight");
         }
 
+        public UToonVolumeLight UToonVolumeLight;
+        private Shader shader;
+        private Material mat;
+        private RenderTargetIdentifier source;
+        private RenderTextureDescriptor sourceDesc;
+        private RenderTexture volumeLightTex;
+        
+        public bool Setup(Material uberMat, RenderingData renderingData)
+        {
+            if (shader == null)
+            {
+                shader = Shader.Find("Hidden/UToon/VolumeLight");
+            }
+
+            if (shader == null)
+            {
+                return false;
+            }
+            if (mat == null && shader != null)
+            {
+                mat = CoreUtils.CreateEngineMaterial(shader);
+            }
+
+            if (mat == null)
+            {
+                return false;
+            }
+
+            source = renderingData.cameraData.renderer.cameraColorTargetHandle;
+            sourceDesc = renderingData.cameraData.cameraTargetDescriptor;
+            if (volumeLightTex == null)
+            {
+                volumeLightTex = RenderTexture.GetTemporary(sourceDesc);
+                volumeLightTex.name = "_VolumeLightTex";
+                volumeLightTex.filterMode = FilterMode.Bilinear;
+                volumeLightTex.wrapMode = TextureWrapMode.Clamp;
+            }
+
+            uberMat.SetTexture(UToonConstants.volumeLightTex, volumeLightTex);
+
+            return true;
+        }
+
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             Camera camera = renderingData.cameraData.camera;
-            
-            CalculateCameraFrustumVertex(camera, out Vector3[] nearPlaneVertex, out Vector3[] farPlaneVertex);
-            
+
+            var cmd = CommandBufferPool.Get("UToon-VolumeLight");
+            using (new ProfilingScope(cmd, profilingSampler))
+            {
+                CalculateCameraFrustumVertex(camera, out Vector3[] nearPlaneVertex, out Vector3[] farPlaneVertex);
+                cmd.SetRenderTarget(volumeLightTex);
+                cmd.ClearRenderTarget(true, true, Color.clear);
+                cmd.Blit(source, volumeLightTex, mat, 0);
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
+                CommandBufferPool.Release(cmd);
+            }
         }
 
         //获取摄像机近裁面矩形、远裁面8个顶点的世界坐标
@@ -49,6 +101,11 @@ namespace UnityEngine.Rendering.Universal
                 nearPlaneVertex[i] = cameraPosWS + nearPlaneDistance * dir[i];
                 farPlaneVertex[i] = cameraPosWS + farPlaneDistance * dir[i];
             }
+        }
+
+        static class ShaderConstant
+        {
+            public static readonly int UToonVolumeLightTex = Shader.PropertyToID("_UToonVolumeLightTex");
         }
     }
 }

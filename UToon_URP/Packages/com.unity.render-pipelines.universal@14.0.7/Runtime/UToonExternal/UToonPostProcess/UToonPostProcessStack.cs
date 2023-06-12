@@ -6,6 +6,7 @@ namespace UnityEngine.Rendering.Universal
     {
         private ScriptableRenderContext context;
         private RenderingData renderingData;
+        private Material uberMat;
         private UToonVolumeLightRenderPass UToonVolumeLightRenderPass;
 
         public UToonPostProcessStack()
@@ -13,17 +14,27 @@ namespace UnityEngine.Rendering.Universal
             UToonVolumeLightRenderPass = new UToonVolumeLightRenderPass();
         }
 
-        public bool Setup(ScriptableRenderContext context, ref RenderingData renderingData)
+        public bool Setup(Material uberMat, ScriptableRenderContext context, ref RenderingData renderingData)
         {
             this.context = context;
             this.renderingData = renderingData;
+            this.uberMat = uberMat;
             return true;
         }
 
         public void RenderVolumeLight()
         {
-            UToonVolumeLightRenderPass.Execute(context, ref renderingData);
+            if (UToonVolumeLightRenderPass.Setup(uberMat,renderingData))
+            {
+                UToonVolumeLightRenderPass.Execute(context, ref renderingData);
+            }
+            
         }
+    }
+    
+    public static class UToonConstants
+    {
+        public static readonly int volumeLightTex = Shader.PropertyToID("_VolumeLightTex");
     }
 }
 
