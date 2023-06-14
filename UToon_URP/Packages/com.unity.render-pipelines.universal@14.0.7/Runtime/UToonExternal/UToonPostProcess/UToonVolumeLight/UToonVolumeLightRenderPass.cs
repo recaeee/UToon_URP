@@ -40,6 +40,13 @@ namespace UnityEngine.Rendering.Universal
 
             source = renderingData.cameraData.renderer.cameraColorTargetHandle;
             sourceDesc = renderingData.cameraData.cameraTargetDescriptor;
+            
+            if(volumeLightTex != null && (volumeLightTex.width != sourceDesc.width || volumeLightTex.height != sourceDesc.height))
+            {
+                RenderTexture.ReleaseTemporary(volumeLightTex);
+                volumeLightTex = null;
+            }
+            
             if (volumeLightTex == null)
             {
                 volumeLightTex = RenderTexture.GetTemporary(sourceDesc);
@@ -60,10 +67,12 @@ namespace UnityEngine.Rendering.Universal
             var cmd = CommandBufferPool.Get("UToon-VolumeLight");
             using (new ProfilingScope(cmd, profilingSampler))
             {
-                CalculateCameraFrustumVertex(camera, out Vector3[] nearPlaneVertex, out Vector3[] farPlaneVertex);
+                CalculateCameraFrustumVertex(camera, out Vector4[] nearPlaneVertex, out Vector4[] farPlaneVertex);
+                mat.SetVectorArray(ShaderConstant.nearPlaneVertex, nearPlaneVertex);
+                mat.SetVectorArray(ShaderConstant.farPlaneVertex, farPlaneVertex);
                 cmd.SetRenderTarget(volumeLightTex);
                 cmd.ClearRenderTarget(true, true, Color.clear);
-                cmd.Blit(source, volumeLightTex, mat, 0);
+                Blitter.BlitTexture(cmd, source, volumeLightTex, mat, 0);
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
                 CommandBufferPool.Release(cmd);
@@ -72,11 +81,11 @@ namespace UnityEngine.Rendering.Universal
 
         //获取摄像机近裁面矩形、远裁面8个顶点的世界坐标
         //参考：https://gwb.tencent.com/community/detail/122057
-        private void CalculateCameraFrustumVertex(Camera camera, out Vector3[] nearPlaneVertex,
-            out Vector3[] farPlaneVertex)
+        private void CalculateCameraFrustumVertex(Camera camera, out Vector4[] nearPlaneVertex,
+            out Vector4[] farPlaneVertex)
         {
-            nearPlaneVertex = new Vector3[4];
-            farPlaneVertex = new Vector3[4];
+            nearPlaneVertex = new Vector4[4];
+            farPlaneVertex = new Vector4[4];
 
             float fov = camera.fieldOfView, aspect = camera.aspect;
             float verticalTang = Mathf.Tan(fov / 2f * Mathf.Deg2Rad);
@@ -87,13 +96,13 @@ namespace UnityEngine.Rendering.Universal
             //构建模型空间下向量，再根据摄像机M矩阵变换到世界空间（不是单位向量，在摄像机z轴上投影为1）
             Transform transform = camera.transform;
             Matrix4x4 viewMat = transform.localToWorldMatrix;
-            Vector3 cameraPosWS = transform.position;
-            Vector3[] dir = new Vector3[4]
+            Vector4 cameraPosWS = transform.position;
+            Vector4[] dir = new Vector4[4]
             {
-                viewMat * new Vector3(-horizontalTang, verticalTang, 1),
-                viewMat * new Vector3(-horizontalTang, -verticalTang, 1),
-                viewMat * new Vector3(horizontalTang, -verticalTang, 1),
-                viewMat * new Vector3(horizontalTang, verticalTang, 1),
+                viewMat * new Vector4(-horizontalTang, verticalTang, 1f,0f),
+                viewMat * new Vector4(-horizontalTang, -verticalTang, 1f,0f),
+                viewMat * new Vector4(horizontalTang, -verticalTang, 1f,0f),
+                viewMat * new Vector4(horizontalTang, verticalTang, 1f,0f),
             };
             //求近、远平面顶点的世界坐标
             for (int i = 0; i < 4; i++)
@@ -106,6 +115,8 @@ namespace UnityEngine.Rendering.Universal
         static class ShaderConstant
         {
             public static readonly int UToonVolumeLightTex = Shader.PropertyToID("_UToonVolumeLightTex");
+            public static readonly int nearPlaneVertex = Shader.PropertyToID("nearPlaneVertex");
+            public static readonly int farPlaneVertex = Shader.PropertyToID("farPlaneVertex");
         }
     }
 }

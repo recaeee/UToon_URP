@@ -340,6 +340,7 @@ namespace UnityEngine.Rendering.Universal
                 // makes it easier to manage temporary targets' lifetime
                 using (new ProfilingScope(cmd, m_ProfilingRenderPostProcessing))
                 {
+                    
                     Render(cmd, ref renderingData);
                 }
             }
