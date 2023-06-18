@@ -15,7 +15,19 @@ MonoBehaviour:
   active: 1
   Enabled:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 1
+  SampleCount:
+    m_OverrideState: 1
+    m_Value: 5
+  MaxRayLength:
+    m_OverrideState: 1
+    m_Value: 100
+  Density:
+    m_OverrideState: 1
+    m_Value: 0.5
+  MieG:
+    m_OverrideState: 1
+    m_Value: 0.5
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

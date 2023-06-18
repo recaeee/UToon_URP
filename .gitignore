@@ -59,3 +59,5 @@
 /UToon_URP/Unity.VisualScripting.Flow.csproj
 /UToon_URP/Unity.VisualScripting.Flow.Editor.csproj
 /UToon_URP/Unity.VisualScripting.SettingsProvider.Editor.csproj
+/UToon_URP/Temp
+/UToon_URP/.vsconfig

@@ -19,6 +19,13 @@ namespace UnityEngine.Rendering.Universal
         
         public bool Setup(Material uberMat, RenderingData renderingData)
         {
+            FetchVolumeComponent();
+
+            if (UToonVolumeLight == null || !UToonVolumeLight.IsActive())
+            {
+                return false;
+            }
+            
             if (shader == null)
             {
                 shader = Shader.Find("Hidden/UToon/VolumeLight");
@@ -37,6 +44,8 @@ namespace UnityEngine.Rendering.Universal
             {
                 return false;
             }
+            
+            
 
             source = renderingData.cameraData.renderer.cameraColorTargetHandle;
             sourceDesc = renderingData.cameraData.cameraTargetDescriptor;
@@ -68,8 +77,14 @@ namespace UnityEngine.Rendering.Universal
             using (new ProfilingScope(cmd, profilingSampler))
             {
                 CalculateCameraFrustumVertex(camera, out Vector4[] nearPlaneVertex, out Vector4[] farPlaneVertex);
-                mat.SetVectorArray(ShaderConstant.nearPlaneVertex, nearPlaneVertex);
-                mat.SetVectorArray(ShaderConstant.farPlaneVertex, farPlaneVertex);
+                mat.SetVectorArray(ShaderConstants.nearPlaneVertex, nearPlaneVertex);
+                mat.SetVectorArray(ShaderConstants.farPlaneVertex, farPlaneVertex);
+
+                mat.SetFloat(ShaderConstants.sampleCount, UToonVolumeLight.SampleCount.value);
+                mat.SetFloat(ShaderConstants.maxRayLength, UToonVolumeLight.MaxRayLength.value);
+                mat.SetFloat(ShaderConstants.density, UToonVolumeLight.Density.value);
+                mat.SetFloat(ShaderConstants.mieG, UToonVolumeLight.MieG.value);
+                
                 cmd.SetRenderTarget(volumeLightTex);
                 cmd.ClearRenderTarget(true, true, Color.clear);
                 Blitter.BlitTexture(cmd, source, volumeLightTex, mat, 0);
@@ -112,11 +127,23 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        static class ShaderConstant
+        private void FetchVolumeComponent()
+        {
+            if (UToonVolumeLight == null)
+            {
+                UToonVolumeLight = VolumeManager.instance.stack.GetComponent<UToonVolumeLight>();
+            }
+        }
+
+        static class ShaderConstants
         {
             public static readonly int UToonVolumeLightTex = Shader.PropertyToID("_UToonVolumeLightTex");
             public static readonly int nearPlaneVertex = Shader.PropertyToID("nearPlaneVertex");
             public static readonly int farPlaneVertex = Shader.PropertyToID("farPlaneVertex");
+            public static readonly int sampleCount = Shader.PropertyToID("_SampleCount");
+            public static readonly int maxRayLength = Shader.PropertyToID("_MaxRayLength");
+            public static readonly int density = Shader.PropertyToID("_Density");
+            public static readonly int mieG = Shader.PropertyToID("_MieG");
         }
     }
 }
