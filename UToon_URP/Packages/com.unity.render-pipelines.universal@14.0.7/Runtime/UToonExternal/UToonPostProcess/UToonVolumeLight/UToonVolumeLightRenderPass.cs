@@ -13,6 +13,7 @@ namespace UnityEngine.Rendering.Universal
         public UToonVolumeLight UToonVolumeLight;
         private Shader shader;
         private Material mat;
+        private Material uberMat;
         private RenderTargetIdentifier source;
         private RenderTextureDescriptor sourceDesc;
         private RenderTexture volumeLightTex;
@@ -47,8 +48,6 @@ namespace UnityEngine.Rendering.Universal
                 return false;
             }
             
-            
-
             source = renderingData.cameraData.renderer.cameraColorTargetHandle;
             sourceDesc = renderingData.cameraData.cameraTargetDescriptor;
             
@@ -65,8 +64,7 @@ namespace UnityEngine.Rendering.Universal
                 volumeLightTex.filterMode = FilterMode.Bilinear;
                 volumeLightTex.wrapMode = TextureWrapMode.Clamp;
             }
-
-            uberMat.SetTexture(UToonConstants.volumeLightTex, volumeLightTex);
+            this.uberMat = uberMat;
 
             return true;
         }
@@ -83,10 +81,11 @@ namespace UnityEngine.Rendering.Universal
                 var tanFov = Mathf.Tan(camera.fieldOfView / 2 * Mathf.Deg2Rad);
                 var tanFovWidth = tanFov * camera.aspect;
                 mat.SetVector(ShaderConstants.cameraInfo, new Vector4(tanFovWidth, tanFov, 0.0f, 0.0f));
-                cmd.SetRenderTarget(volumeLightTex);
+                cmd.SetRenderTarget(volumeLightTex, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
                 cmd.ClearRenderTarget(true, true, Color.clear);
                 DrawSpotVolumeLights(cmd, renderingData.lightData);
                 // Blitter.BlitTexture(cmd, source, volumeLightTex, mat, 0);
+                uberMat.SetTexture(ShaderConstants.uToonVolumeLightTex, volumeLightTex);
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
                 CommandBufferPool.Release(cmd);
@@ -136,6 +135,7 @@ namespace UnityEngine.Rendering.Universal
 
         private void DrawSpotVolumeLights(CommandBuffer cmd, LightData lightData)
         {
+            int spotLightIndex = 0;
             for (int i = 0; i < lightData.visibleLights.Length; i++)
             {
                 VisibleLight visibleLight = lightData.visibleLights[i];
@@ -147,7 +147,7 @@ namespace UnityEngine.Rendering.Universal
                 Vector4[] spotBoundaryPlanes = GetSpotLightVolumeBoundary(visibleLight.light);
                 mat.SetVectorArray(ShaderConstants.spotBoundaryPlanes, spotBoundaryPlanes);
                 mat.SetVector(ShaderConstants.spotVolumeLightInfo,
-                    new Vector4(i, spotBoundaryPlanes.Length, 0.0f, 0.0f));
+                    new Vector4(spotLightIndex++, spotBoundaryPlanes.Length, 0.0f, 0.0f));
                 SetSpotVolomeLightMesh(visibleLight.light);
                 cmd.DrawMesh(volumeMesh, visibleLight.localToWorldMatrix, mat, 0);
             }
@@ -217,7 +217,7 @@ namespace UnityEngine.Rendering.Universal
 
         static class ShaderConstants
         {
-            public static readonly int UToonVolumeLightTex = Shader.PropertyToID("_UToonVolumeLightTex");
+            public static readonly int uToonVolumeLightTex = Shader.PropertyToID("_VolumeLightTex");
             public static readonly int sampleCount = Shader.PropertyToID("_SampleCount");
             
             public static readonly int spotBoundaryPlanes = Shader.PropertyToID("_SpotBoundaryPlanes");

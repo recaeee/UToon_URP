@@ -12,7 +12,7 @@ Shader "Hidden/UToon/VolumeLight"
     #define SPOT_BOUNDARY_PLANES_COUNT 5
 
 
-    TEXTURE2D(_CameraDepthTexture);
+    TEXTURE2D_FLOAT(_CameraDepthTexture);
     SAMPLER(sampler_CameraDepthTexture);
 
     //采样次数
@@ -101,8 +101,7 @@ Shader "Hidden/UToon/VolumeLight"
         float totalLight = 0;
         //计算采样步长
         float stepSize = (far - near) / _SampleCount;
-
-
+        
         for (int i = 1; i < _SampleCount; i++)
         {
             float f = stepSize;
@@ -116,11 +115,30 @@ Shader "Hidden/UToon/VolumeLight"
             float cameraDistance = distance(_WorldSpaceCameraPos, pos);
             float scat2 = BeerLambertLaw(cameraDistance, _Absorption);
             f *= scat2;
-            
+
             totalLight += f;
         }
 
         return totalLight * spotLight.color;
+    }
+
+    Varyings FullScreenVert(Attributes input)
+    {
+        Varyings output;
+        UNITY_SETUP_INSTANCE_ID(input);
+        UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
+        #if SHADER_API_GLES
+    float4 pos = input.positionOS;
+    float2 uv  = input.uv;
+        #else
+        float4 pos = GetFullScreenTriangleVertexPosition(input.vertexID);
+        float2 uv = GetFullScreenTriangleTexCoord(input.vertexID);
+        #endif
+
+        output.positionCS = pos;
+        output.texcoord = uv;
+        return output;
     }
 
 
@@ -165,13 +183,13 @@ Shader "Hidden/UToon/VolumeLight"
         Pass
         {
             Name "UToon Volume Light"
-            ZTest LESS
+            ZTest Always
             Cull Front
             ZWrite Off
             Blend One One
 
             HLSLPROGRAM
-            #pragma vertex Vert
+            #pragma vertex FullScreenVert
             #pragma fragment Frag
             ENDHLSL
         }

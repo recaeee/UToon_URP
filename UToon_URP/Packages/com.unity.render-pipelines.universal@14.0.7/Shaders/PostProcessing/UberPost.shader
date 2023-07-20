@@ -32,6 +32,9 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
 
+        //UToon External
+        #include "Packages/com.unity.render-pipelines.universal/Runtime/UToonExternal/UToonPostProcess/Uber/UToonUberExternal.hlsl"
+
         // Hardcoded dependencies to reduce the number of variants
         #if _BLOOM_LQ || _BLOOM_HQ || _BLOOM_LQ_DIRT || _BLOOM_HQ_DIRT
             #define BLOOM
@@ -281,6 +284,7 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
             }
             #endif
 
+            color = DebugVolumeLight(uv);
             return half4(color, 1.0);
         }
 

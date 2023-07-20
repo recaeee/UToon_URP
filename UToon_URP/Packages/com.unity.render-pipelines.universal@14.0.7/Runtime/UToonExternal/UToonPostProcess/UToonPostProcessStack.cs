@@ -31,11 +31,6 @@ namespace UnityEngine.Rendering.Universal
             
         }
     }
-    
-    public static class UToonConstants
-    {
-        public static readonly int volumeLightTex = Shader.PropertyToID("_VolumeLightTex");
-    }
 }
 
 
